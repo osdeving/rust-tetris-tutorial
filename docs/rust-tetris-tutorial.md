@@ -324,6 +324,7 @@ impl TetrominoKind {
 }
 ```
 
+### Cell, Grid e Board
 Para o board, vamos pensar assim: um board tem uma grade e essa grade é formada por células. No tetris clássico são 10 colunas e 20 linhas. Cada célula pode estar vazia ou ter um tetromino, então podemos representar esse estado da seguinte forma:
 
 ```rust
@@ -411,8 +412,109 @@ Você deverá ver algo como
 
 ![Board e Peça](./images/print-2026-06-25_20-05-53.png)
 
+### GridPos, Shape e Piece
 
 
+Para posição podemos abstrair como uma struct contendo x e y do tipo i32. Um shape seria uma array com 4 posições (as peças no tetris possuem 4 blocos). Uma peça é composta por um shape e um tipo. Observe:
+
+
+GridPos
+```rust
+#[derive(Clone, Copy)]
+struct GridPos {
+    x: i32,
+    y: i32,
+}
+```
+
+Shape
+
+```rust
+type Shape = [GridPos; 4];
+```
+
+Shape é apenas um array de GridPos. Podes criar uma instância de shape como a seguir:
+
+```rust
+const T_SHAPE: Shape = [
+    GridPos { x: 0, y: 0 },
+    GridPos { x: -1, y: 0 },
+    GridPos { x: 1, y: 0 },
+    GridPos { x: 0, y: -1 },
+];
+```
+
+Por fim, uma `Piece`:
+
+```rust
+#[derive(Clone, Copy)]
+struct Piece {
+    kind: TetrominoKind,
+    position: GridPos,
+}
+```
+
+Podemos implementar new e blocks para `Piece`:
+
+```rust
+impl Piece {
+    fn new(kind: TetrominoKind, position: GridPos) -> Self {
+        Piece { kind, position }
+    }
+
+    fn blocks(&self) -> [GridPos; 4] {
+        shape_for(self.kind).map(|pos| GridPos {
+            x: self.position.x + pos.x,
+            y: self.position.y + pos.y,
+        })
+    }
+}
+```
+
+Note que `Piece` não armazena um shape, ele armazea a posição da peça. Para obter os blocos que compõem a peça chamamos `blocks`. O método `blocks` usa a função `shape_for` para obter os demais blocos para a peça.
+
+Definição de `shape_for`
+```rust
+fn shape_for(kind: TetrominoKind) -> Shape {
+    match kind {
+        TetrominoKind::T => T_SHAPE,
+        _ => T_SHAPE,
+    }
+}
+```
+
+Perceba também que o shape foi definido com coordenadas locais. O método blocks mapeia cada posição do shape para coordenadas que da peça adicionando o x e y da peça ao x e y do shape.
+
+Agora podemos criar uma peça como a seguir:
+
+ ```rust
+ let active_piece = Piece::new(TetrominoKind::T, GridPos { x: 5, y: 3 });
+ ```
+
+ E desenhar
+
+ ```rust
+ draw_piece(&mut d, &active_piece);
+ ```
+
+Segue a função draw_piece:
+
+```rust
+fn draw_piece(d: &mut RaylibDrawHandle<'_>, piece: &Piece) {
+    for block in piece.blocks() {
+        draw_block(d, block.x, block.y, piece.kind.color());
+    }
+}
+```
+
+
+## Passo 6: Movimento e Colisão
+
+Temos tudo que precisamos para avançar em três frentes: movimento, tratamento de colisão e animação da peça descendo.
+
+### Movimento da Peça
+
+Para movimento precisamos obter 
 
 
 

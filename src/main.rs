@@ -32,6 +32,12 @@ fn draw_board(d: &mut RaylibDrawHandle<'_>, board: &Board) {
     }
 }
 
+fn draw_piece(d: &mut RaylibDrawHandle<'_>, piece: &Piece) {
+    for block in piece.blocks() {
+        draw_block(d, block.x, block.y, piece.kind.color());
+    }
+}
+
 #[derive(Clone, Copy)]
 enum TetrominoKind {
     I, O, T, S, Z, J, L,
@@ -91,6 +97,65 @@ impl Board {
     }
 }
 
+#[derive(Clone, Copy)]
+struct GridPos {
+    x: i32,
+    y: i32,
+}
+
+type Shape = [GridPos; 4];
+
+const T_SHAPE: Shape = [
+    GridPos { x: 0, y: 0 },
+    GridPos { x: -1, y: 0 },
+    GridPos { x: 1, y: 0 },
+    GridPos { x: 0, y: -1 },
+];
+
+fn shape_for(kind: TetrominoKind) -> Shape {
+    match kind {
+        TetrominoKind::T => T_SHAPE,
+        _ => T_SHAPE,
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Piece {
+    kind: TetrominoKind,
+    position: GridPos,
+}
+
+impl Piece {
+    fn new(kind: TetrominoKind, position: GridPos) -> Self {
+        Piece { kind, position }
+    }
+
+    fn blocks(&self) -> [GridPos; 4] {
+        shape_for(self.kind).map(|pos| GridPos {
+            x: self.position.x + pos.x,
+            y: self.position.y + pos.y,
+        })
+    }
+}
+
+fn try_move(board: &Board, piece: &mut Piece, dx: i32, dy: i32) -> bool {
+    let moved = Piece {
+        position: GridPos {
+            x: piece.position.x + dx,
+            y: piece.position.y + dy,
+        },
+        ..*piece
+    };
+
+    // if board.can_place(moved) {
+    //     *piece = moved;
+    //     true
+    // } else {
+    //     false
+    // }
+
+    true
+}
 
 fn main() {
     let (mut rl, thread) = raylib::init()
@@ -99,11 +164,9 @@ fn main() {
         .build();
 
     let mut board = Board::new();
-    board.set_cell(4, 18, Some(Cell { kind: TetrominoKind::T}));
-    board.set_cell(5, 18, Some(Cell { kind: TetrominoKind::T}));
-    board.set_cell(6, 18, Some(Cell { kind: TetrominoKind::T}));
-    board.set_cell(5, 19, Some(Cell { kind: TetrominoKind::T}));
     
+    let active_piece = Piece::new(TetrominoKind::T, GridPos { x: 5, y: 3 });
+
     while !rl.window_should_close() {
 
         rl.draw(&thread, |mut d| {
@@ -111,6 +174,7 @@ fn main() {
             d.draw_text("Tetris", SCREEN_WIDTH / 2 - 30, 10, 20, Color::YELLOW);
 
             draw_board(&mut d, &board);
+            draw_piece(&mut d, &active_piece);
         });
     }
 }
